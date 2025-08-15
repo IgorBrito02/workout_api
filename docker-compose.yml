@@ -1,10 +1,28 @@
-version: "3"
 services:
   db:
     image: postgres:11-alpine
+    restart: always
     environment:
       POSTGRES_PASSWORD: workout
       POSTGRES_USER: workout
       POSTGRES_DB: workout
     ports:
       - "5432:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U workout"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  api:
+    build: .
+    volumes:
+      - .:/app
+    environment:
+      DB_URL: "postgresql+asyncpg://workout:workout@db:5432/workout"
+    command: uvicorn workout_api.main:app --host 0.0.0.0 --reload
+    ports:
+      - "8000:8000"
+    depends_on:
+      db:
+        condition: service_healthy

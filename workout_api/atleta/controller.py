@@ -1,15 +1,17 @@
 from datetime import datetime
 from uuid import uuid4
-from fastapi import APIRouter, Body, HTTPException, status
+from fastapi import APIRouter, Body, HTTPException, status, Depends
 from pydantic import UUID4
+from sqlalchemy.future import select
+from sqlalchemy.exc import IntegrityError
 
-from workout_api.atleta.schemas import AtletaIn, AtletaOut, AtletaUpdate
+from workout_api.atleta.schemas import AtletaIn, AtletaOut, AtletaUpdate, AtletaListOut
 from workout_api.atleta.models import AtletaModel
 from workout_api.categorias.models import CategoriaModel
 from workout_api.centro_treinamento.models import CentroTreinamentoModel
-
 from workout_api.contrib.dependencies import DatabaseDependency
-from sqlalchemy.future import select
+
+from fastapi_pagination import LimitOffsetPage, Params, paginate
 
 router = APIRouter()
 
@@ -45,16 +47,24 @@ async def post(
             status_code=status.HTTP_400_BAD_REQUEST, 
             detail=f'O centro de treinamento {centro_treinamento_nome} não foi encontrado.'
         )
+
     try:
         atleta_out = AtletaOut(id=uuid4(), created_at=datetime.utcnow(), **atleta_in.model_dump())
         atleta_model = AtletaModel(**atleta_out.model_dump(exclude={'categoria', 'centro_treinamento'}))
-
         atleta_model.categoria_id = categoria.pk_id
         atleta_model.centro_treinamento_id = centro_treinamento.pk_id
-        
+
         db_session.add(atleta_model)
         await db_session.commit()
+
+    except IntegrityError:
+        await db_session.rollback()
+        raise HTTPException(
+            status_code=303,
+            detail=f"Já existe um atleta cadastrado com o cpf: {atleta_in.cpf}"
+        )
     except Exception:
+        await db_session.rollback()
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, 
             detail='Ocorreu um erro ao inserir os dados no banco'
@@ -67,12 +77,33 @@ async def post(
     '/', 
     summary='Consultar todos os Atletas',
     status_code=status.HTTP_200_OK,
-    response_model=list[AtletaOut],
+    response_model=LimitOffsetPage[AtletaListOut],
 )
-async def query(db_session: DatabaseDependency) -> list[AtletaOut]:
-    atletas: list[AtletaOut] = (await db_session.execute(select(AtletaModel))).scalars().all()
-    
-    return [AtletaOut.model_validate(atleta) for atleta in atletas]
+async def query(
+    db_session: DatabaseDependency,
+    params: Params = Depends(),
+    nome: str | None = None,
+    cpf: str | None = None
+) -> LimitOffsetPage[AtletaListOut]:
+    query = select(AtletaModel)
+
+    if nome:
+        query = query.filter(AtletaModel.nome.ilike(f"%{nome}%"))
+    if cpf:
+        query = query.filter(AtletaModel.cpf == cpf)
+
+    atletas = (await db_session.execute(query)).scalars().all()
+
+    data = [
+        AtletaListOut(
+            nome=a.nome,
+            centro_treinamento=a.centro_treinamento.nome,
+            categoria=a.categoria.nome
+        )
+        for a in atletas
+    ]
+
+    return paginate(data, params)
 
 
 @router.get(

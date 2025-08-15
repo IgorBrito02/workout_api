@@ -1,11 +1,12 @@
 from uuid import uuid4
 from fastapi import APIRouter, Body, HTTPException, status
 from pydantic import UUID4
+from sqlalchemy.future import select
+from sqlalchemy.exc import IntegrityError
+
 from workout_api.centro_treinamento.schemas import CentroTreinamentoIn, CentroTreinamentoOut
 from workout_api.centro_treinamento.models import CentroTreinamentoModel
-
 from workout_api.contrib.dependencies import DatabaseDependency
-from sqlalchemy.future import select
 
 router = APIRouter()
 
@@ -22,8 +23,15 @@ async def post(
     centro_treinamento_out = CentroTreinamentoOut(id=uuid4(), **centro_treinamento_in.model_dump())
     centro_treinamento_model = CentroTreinamentoModel(**centro_treinamento_out.model_dump())
     
-    db_session.add(centro_treinamento_model)
-    await db_session.commit()
+    try:
+        db_session.add(centro_treinamento_model)
+        await db_session.commit()
+    except IntegrityError:
+        await db_session.rollback()
+        raise HTTPException(
+            status_code=303,
+            detail=f"Já existe um centro de treinamento cadastrado com o nome: {centro_treinamento_in.nome}"
+        )
 
     return centro_treinamento_out
     

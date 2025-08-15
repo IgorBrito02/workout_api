@@ -1,5 +1,6 @@
 import asyncio
 from logging.config import fileConfig
+import os
 
 from sqlalchemy.engine import Connection
 from sqlalchemy.ext.asyncio import async_engine_from_config
@@ -11,6 +12,8 @@ from workout_api.contrib.repository.models import *
 
 config = context.config
 
+# Use a variável de ambiente DATABASE_URL
+config.set_main_option("sqlalchemy.url", os.environ.get("DB_URL"))
 
 if config.config_file_name is not None:
     fileConfig(config.config_file_name)
