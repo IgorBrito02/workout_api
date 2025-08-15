@@ -1,83 +1,161 @@
-# FastAPI
-### Quem é o FastAPi?
-Framework FastAPI, alta performance, fácil de aprender, fácil de codar, pronto para produção.
-FastAPI é um moderno e rápido (alta performance) framework web para construção de APIs com Python 3.6 ou superior, baseado nos type hints padrões do Python.
+# 🏋️‍♂️ Workout API - Desafio DIO/Santander Back-End com Python
 
-### Async
-Código assíncrono apenas significa que a linguagem tem um jeito de dizer para o computador / programa que em certo ponto, ele terá que esperar por algo para finalizar em outro lugar
+Este projeto foi desenvolvido como parte do programa **Santander Bootcamp 2024 - Back-End com Python** da [Digital Innovation One](https://www.dio.me/), atendendo aos requisitos do desafio proposto.
 
-# Projeto
-## WorkoutAPI
+## 📌 Objetivo do Desafio
+Implementar melhorias na API fornecida pelo instrutor, aplicando os seguintes requisitos:
 
-Esta é uma API de competição de crossfit chamada WorkoutAPI (isso mesmo rs, eu acabei unificando duas coisas que gosto: codar e treinar). É uma API pequena, devido a ser um projeto mais hands-on e simplificado nós desenvolveremos uma API de poucas tabelas, mas com o necessário para você aprender como utilizar o FastAPI.
+- **Adicionar Query Parameters** nos endpoints:
+  - `GET /atletas/?nome=...`
+  - `GET /atletas/?cpf=...`
+- **Customizar a resposta** do endpoint `GET /atletas/` para retornar apenas:
+  - `nome`
+  - `centro_treinamento`
+  - `categoria`
+- **Manipular exceção de integridade de dados** (`IntegrityError`) com mensagem personalizada:
+  ```
+  Já existe um atleta cadastrado com o cpf: <cpf>
+  ```
+  - Status Code: **303**
+- **Adicionar paginação** utilizando a lib [fastapi-pagination](https://pypi.org/project/fastapi-pagination/) com parâmetros:
+  - `limit`
+  - `offset`
 
-## Modelagem de entidade e relacionamento - MER
-![MER](/mer.jpg "Modelagem de entidade e relacionamento")
+---
 
-## Stack da API
+## 🚀 Como Rodar o Projeto
 
-A API foi desenvolvida utilizando o `fastapi` (async), junto das seguintes libs: `alembic`, `SQLAlchemy`, `pydantic`. Para salvar os dados está sendo utilizando o `postgres`, por meio do `docker`.
-
-## Execução da API
-
-Para executar o projeto, utilizei a [pyenv](https://github.com/pyenv/pyenv), com a versão 3.11.4 do `python` para o ambiente virtual.
-
-Caso opte por usar pyenv, após instalar, execute:
-
+### 1️⃣ Clonar o repositório
 ```bash
-pyenv virtualenv 3.11.4 workoutapi
-pyenv activate workoutapi
+git clone https://github.com/IgorBrito02/workout_api.git
+cd workout_api
+```
+
+### 2️⃣ Criar e ativar o ambiente virtual
+```bash
+python -m venv .venv
+.venv\Scripts\activate   # Windows
+source .venv/bin/activate # Linux/Mac
+```
+
+### 3️⃣ Instalar dependências
+```bash
 pip install -r requirements.txt
 ```
-Para subir o banco de dados, caso não tenha o [docker-compose](https://docs.docker.com/compose/install/linux/) instalado, faça a instalação e logo em seguida, execute:
 
+### 4️⃣ Subir os containers com Docker
 ```bash
-make run-docker
-```
-Para criar uma migration nova, execute:
-
-```bash
-make create-migrations d="nome_da_migration"
+docker-compose up --build
 ```
 
-Para criar o banco de dados, execute:
-
+### 5️⃣ Rodar migrações
 ```bash
-make run-migrations
+docker-compose run --rm api alembic upgrade head
 ```
 
-## API
+### 6️⃣ Acessar a documentação da API
+[http://127.0.0.1:8000/docs](http://127.0.0.1:8000/docs)
 
-Para subir a API, execute:
-```bash
-make run
+---
+
+## 🧪 JSONs para Testes no `/docs`
+
+### Criar Categorias
+```json
+{
+  "nome": "Scale"
+}
 ```
-e acesse: http://127.0.0.1:8000/docs
+```json
+{
+  "nome": "Rx"
+}
+```
 
-# Desafio Final
-    - adicionar query parameters nos endpoints
-        - atleta
-            - nome
-            - cpf
-    - customizar response de retorno de endpoints
-        - get all
-            - atleta
-                - nome
-                - centro_treinamento
-                - categoria
-    - Manipular exceção de integridade dos dados em cada módulo/tabela
-        - sqlalchemy.exc.IntegrityError e devolver a seguinte mensagem: “Já existe um atleta cadastrado com o cpf: x”
-        - status_code: 303
-    - Adicionar paginação utilizando a lib: fastapi-pagination
-        - limit e offset
-# Referências
+### Criar Centros de Treinamento
+```json
+{
+  "nome": "CT King",
+  "endereco": "Rua X, Q02",
+  "proprietario": "Marcos"
+}
+```
+```json
+{
+  "nome": "CT Power",
+  "endereco": "Avenida Y, Q10",
+  "proprietario": "Paulo"
+}
+```
 
-FastAPI: https://fastapi.tiangolo.com/
+### Criar Atletas
+```json
+{
+  "nome": "João",
+  "cpf": "12345678900",
+  "idade": 25,
+  "peso": 75.5,
+  "altura": 1.70,
+  "sexo": "M",
+  "categoria": { "nome": "Scale" },
+  "centro_treinamento": { "nome": "CT King" }
+}
+```
+```json
+{
+  "nome": "Maria",
+  "cpf": "98765432100",
+  "idade": 28,
+  "peso": 62.0,
+  "altura": 1.65,
+  "sexo": "F",
+  "categoria": { "nome": "Rx" },
+  "centro_treinamento": { "nome": "CT Power" }
+}
+```
+```json
+{
+  "nome": "José",
+  "cpf": "11122233344",
+  "idade": 30,
+  "peso": 80.0,
+  "altura": 1.75,
+  "sexo": "M",
+  "categoria": { "nome": "Scale" },
+  "centro_treinamento": { "nome": "CT Power" }
+}
+```
 
-Pydantic: https://docs.pydantic.dev/latest/
+---
 
-SQLAlchemy: https://docs.sqlalchemy.org/en/20/
+## 🔍 Testes de Funcionalidades
 
-Alembic: https://alembic.sqlalchemy.org/en/latest/
+- **Query Parameters**
+  - `GET /atletas/?nome=Jo` → Retorna atletas com "Jo" no nome
+  - `GET /atletas/?cpf=12345678900` → Retorna apenas João
 
-Fastapi-pagination: https://uriyyo-fastapi-pagination.netlify.app/
+- **Resposta Customizada**
+  - `GET /atletas/` retorna apenas `nome`, `centro_treinamento`, `categoria`
+
+- **Tratamento de Duplicidade**
+  - Criar atleta com CPF já existente → Status **303** e mensagem personalizada
+
+- **Paginação**
+  - `GET /atletas/?limit=1&offset=0` → Primeiro atleta
+  - `GET /atletas/?limit=1&offset=1` → Segundo atleta
+
+---
+
+## 🛠 Tecnologias Utilizadas
+- Python 3.12
+- FastAPI
+- SQLAlchemy
+- Alembic
+- PostgreSQL
+- Docker / Docker Compose
+- fastapi-pagination
+
+---
+
+## 📄 Licença
+Este projeto está sob a licença MIT.
